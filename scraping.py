@@ -11,9 +11,12 @@ if response.ok: #Vérification que la requête a réussi
 
     #Récupération des données souhaitées
     book_title = book_soup.find(class_="col-sm-6 product_main").find('h1').text #title
+    p_list = book_soup.find_all('p')
+    book_description = p_list[3].text #product_description
     
 
     #Affichage des données récoltées dans la console
     print(book_url)
     print(book_title)
+    print(book_description)
     
