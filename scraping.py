@@ -9,6 +9,10 @@ website_url = 'http://books.toscrape.com/'
 website_response = requests.get(website_url) #Demande du code HTML de la page d'accueil du site book.toscrap
 books = []
 file_header = ["product_page_url", "universal_product_code", "title", "price_including_tax", "price_excluding_tax", "number_available", "product_description", "category", "review_rating", "image_url"]
+category_number = 0
+book_number = 0
+image_number = 0
+
 
 if website_response.ok: 
     website_soup = BeautifulSoup(website_response.text, 'lxml')
@@ -18,7 +22,9 @@ if website_response.ok:
 
     #Boucle parcourant les catégories
     for category in category_list:
+        category_number =+ 1
         category_title = category.text.replace("  ", "").replace("\n", "") #Récupération du titre de chaque catégorie
+        print("catégorie " + str(category_number) + " : " + category_title)
         category_url = website_url + category.find('a')['href'] #Création de l'URL de la catégorie à partir de son titre et de l'URL du site
         category_response = requests.get(category_url) #Demande du code HTML de la catégorie Travel
         
@@ -30,7 +36,7 @@ if website_response.ok:
             writer.writeheader()
         
         while category_response.ok: #Boucle while qui s'effectue si la page demandée existe
-            print(category_title + ' ' + str(page_number) + ' ' + 'ok')
+            print(category_title + ' page ' + str(page_number) + ' :')
             category_soup = BeautifulSoup(category_response.text, 'lxml')
             book_category = category_title #category
             book_list = category_soup.find_all(class_="product_pod")            
@@ -40,7 +46,6 @@ if website_response.ok:
                 book_url = website_url + str("catalogue/") + book.find('h3').find('a')['href'].strip("../") #product_page_url
                 book_response = requests.get(book_url) #Récupération du code HTML d'un livre grâce à une requête sur son URL
                 if book_response.ok: #Vérification que la requête a réussi
-                    print(book_response) #Affichage du status de la requête
                     book_soup = BeautifulSoup(book_response.text, 'lxml') #Création du soup à partir du code HTML obtenu
 
                     #Récupération des données souhaitées
@@ -61,6 +66,11 @@ if website_response.ok:
                     book_table_dictionary["Price (incl. tax)"] = re.findall("\d+", book_table_dictionary["Price (incl. tax)"])[0] + '.' + re.findall("\d+", book_table_dictionary["Price (incl. tax)"])[1]
                     book_table_dictionary["Price (excl. tax)"] = re.findall("\d+", book_table_dictionary["Price (excl. tax)"])[0] + '.' + re.findall("\d+", book_table_dictionary["Price (excl. tax)"])[1]
                     book_table_dictionary["Availability"] = re.findall("\d+", book_table_dictionary["Availability"])[0]
+
+                    #Récupération des review_rating
+                    book_rating = book_soup.find(class_="star-rating")["class"]
+                    rating_dict = {'One' : 1, 'Two' : 2, 'Three' : 3, 'Four' : 4, 'Five' : 5}
+                    review_rating = rating_dict[book_rating[1]]
                 
                     book_dictionary["product_page_url"] = book_url
                     book_dictionary["universal_product_code"] = book_table_dictionary["UPC"]
@@ -70,11 +80,13 @@ if website_response.ok:
                     book_dictionary["number_available"] = book_table_dictionary["Availability"]
                     book_dictionary["product_description"] = book_description
                     book_dictionary["category"] = book_category
-                    book_dictionary["review_rating"] = '?'
+                    book_dictionary["review_rating"] = review_rating
                     book_dictionary["image_url"] = book_image
 
                     #Mise du dictionnaire dans une liste de livres
                     books.append(book_dictionary)
+                    book_number += 1
+                    print(str(book_number) + " livre(s) scrapé(s)")
 
                     #Rajout du livre dans le fichier csv de la catégorie
                     with open("CSV/" + category_title + '.csv', 'a', encoding='utf-8') as csv_file:
@@ -83,6 +95,8 @@ if website_response.ok:
 
                     #Télécharger l'image du livre                   
                     urllib.request.urlretrieve(book_image, "Images/" + book_dictionary["universal_product_code"] + ".jpg")
+                    image_number += 1
+                    print(str(image_number) + " image(s) téléchargée(s)")
 
                 break #Ne prendre qu'un seul livre par catégorie pour raccourcir le temps d'essai
             
@@ -92,6 +106,6 @@ if website_response.ok:
             category_url = category_url.replace(str(page_number - 1), str(page_number))
             category_response = requests.get(category_url)
 
-        ###break #Ne faire que la première catégorie pour raccourcir le temps
+        break #Ne faire que la première catégorie pour raccourcir le temps
 
         #content_inner > article > div.row
