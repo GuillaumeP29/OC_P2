@@ -3,13 +3,10 @@ from bs4 import BeautifulSoup
 import re
 import csv
 
-book_url = "http://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html" #product_page_url
 website_url = 'http://books.toscrape.com/'
-category_url = "http://books.toscrape.com/catalogue/category/books/travel_2/index.html"
+website_response = requests.get(website_url) #Demande du code HTML de la page d'accueil du site book.toscrap
 books = []
 file_header = ["product_page_url", "universal_product_code", "title", "price_including_tax", "price_excluding_tax", "number_available", "product_description", "category", "review_rating", "image_url"]
-
-website_response = requests.get(website_url) #Demande du code HTML de la page d'accueil du site book.toscrap
 
 if website_response.ok: 
     website_soup = BeautifulSoup(website_response.text, 'lxml')
@@ -22,17 +19,23 @@ if website_response.ok:
         category_title = category.text.replace("  ", "").replace("\n", "") #Récupération du titre de chaque catégorie
         category_url = website_url + category.find('a')['href'] #Création de l'URL de la catégorie à partir de son titre et de l'URL du site
         category_response = requests.get(category_url) #Demande du code HTML de la catégorie Travel
-        if category_response.ok:
+        
+        page_number = 1
+
+        #Création d'un fichier pour la catégorie
+        with open("CSV/" + category_title + '.csv', 'w', encoding='utf-8') as csv_file:
+            writer = csv.DictWriter(csv_file, fieldnames=file_header)
+            writer.writeheader()
+        
+        while category_response.ok: #Boucle while qui s'effectue si la page demandée existe
+            print(category_title + ' ' + str(page_number) + ' ' + 'ok')
             category_soup = BeautifulSoup(category_response.text, 'lxml')
             book_category = category_title #category
-            book_list = category_soup.find_all(class_="product_pod")
-            #Création d'un fichier pour la catégorie
-            with open(book_category + '.csv', 'w', encoding='utf-8') as csv_file:
-                writer = csv.DictWriter(csv_file, fieldnames=file_header)
-                writer.writeheader()
+            book_list = category_soup.find_all(class_="product_pod")            
+            
             #Parcours des livre de la catégorie
             for book in book_list:
-                book_url = website_url + str("catalogue/") + book.find('h3').find('a')['href'].strip("../")
+                book_url = website_url + str("catalogue/") + book.find('h3').find('a')['href'].strip("../") #product_page_url
                 book_response = requests.get(book_url) #Récupération du code HTML d'un livre grâce à une requête sur son URL
                 if book_response.ok: #Vérification que la requête a réussi
                     print(book_response) #Affichage du status de la requête
@@ -57,29 +60,31 @@ if website_response.ok:
                     book_table_dictionary["Price (excl. tax)"] = re.findall("\d+", book_table_dictionary["Price (excl. tax)"])[0] + '.' + re.findall("\d+", book_table_dictionary["Price (excl. tax)"])[1]
                     book_table_dictionary["Availability"] = re.findall("\d+", book_table_dictionary["Availability"])[0]
                 
-                    book_dictionary["product_page_url"] = book_url
-                    book_dictionary["universal_product_code"] = book_table_dictionary["UPC"]
-                    book_dictionary["title"] = book_title
-                    book_dictionary["price_including_tax"] = book_table_dictionary["Price (incl. tax)"]
-                    book_dictionary["price_excluding_tax"] = book_table_dictionary["Price (excl. tax)"]
-                    book_dictionary["number_available"] = book_table_dictionary["Availability"]
-                    book_dictionary["product_description"] = book_description
-                    book_dictionary["category"] = book_category
-                    book_dictionary["review_rating"] = '?'
-                    book_dictionary["image_url"] = book_image
+                    book_dictionary[file_header[0]] = book_url
+                    book_dictionary[file_header[1]] = book_table_dictionary["UPC"]
+                    book_dictionary[file_header[2]] = book_title
+                    book_dictionary[file_header[3]] = book_table_dictionary["Price (incl. tax)"]
+                    book_dictionary[file_header[4]] = book_table_dictionary["Price (excl. tax)"]
+                    book_dictionary[file_header[5]] = book_table_dictionary["Availability"]
+                    book_dictionary[file_header[6]] = book_description
+                    book_dictionary[file_header[7]] = book_category
+                    book_dictionary[file_header[8]] = '?'
+                    book_dictionary[file_header[9]] = book_image
 
                     #Mise du dictionnaire dans une liste de livres
                     books.append(book_dictionary)
 
                     #Rajout du livre dans le fichier csv de la catégorie
-                    with open(book_category + '.csv', 'a', encoding='utf-8') as csv_file:
+                    with open("CSV/" + category_title + '.csv', 'a', encoding='utf-8') as csv_file:
                                 writer = csv.DictWriter(csv_file, fieldnames=file_header)
                                 writer.writerow(book_dictionary)
 
-
-
-                    #Affichage du titre de chaque livre récolté, dans la console
-                    print(book_dictionary["title"])
-
-
                 break #Ne prendre qu'un seul livre par catégorie pour racourcir le temps d'essai
+            
+            #Modifie l'URL pour demander la page suivante
+            page_number +=1
+            category_url = category_url.replace('index', 'page-' + str(page_number))
+            category_url = category_url.replace(str(page_number - 1), str(page_number))
+            category_response = requests.get(category_url)
+
+        ###break #Ne faire que la première catégorie pour raccourcir le tempss
