@@ -2,7 +2,9 @@ import requests
 from bs4 import BeautifulSoup
 import re
 import csv
+import urllib
 
+requests.encoding = 'utf-8'
 website_url = 'http://books.toscrape.com/'
 website_response = requests.get(website_url) #Demande du code HTML de la page d'accueil du site book.toscrap
 books = []
@@ -24,7 +26,7 @@ if website_response.ok:
 
         #Création d'un fichier pour la catégorie
         with open("CSV/" + category_title + '.csv', 'w', encoding='utf-8') as csv_file:
-            writer = csv.DictWriter(csv_file, fieldnames=file_header)
+            writer = csv.DictWriter(csv_file, delimiter=";", fieldnames=file_header)
             writer.writeheader()
         
         while category_response.ok: #Boucle while qui s'effectue si la page demandée existe
@@ -43,8 +45,8 @@ if website_response.ok:
 
                     #Récupération des données souhaitées
                     book_title = book_soup.find(class_="col-sm-6 product_main").find('h1').text #title
-                    p_list = book_soup.find_all('p')
-                    book_description = p_list[3].text #product_description
+                    book_description = book_soup.select_one('article>p').text #product_description
+                    book_description.replace(';', ',')
                     book_image = website_url + book_soup.find(class_="item active").find('img')['src'].strip("../") #image_url
 
                     #Récupération des données du tableau du livre
@@ -60,26 +62,29 @@ if website_response.ok:
                     book_table_dictionary["Price (excl. tax)"] = re.findall("\d+", book_table_dictionary["Price (excl. tax)"])[0] + '.' + re.findall("\d+", book_table_dictionary["Price (excl. tax)"])[1]
                     book_table_dictionary["Availability"] = re.findall("\d+", book_table_dictionary["Availability"])[0]
                 
-                    book_dictionary[file_header[0]] = book_url
-                    book_dictionary[file_header[1]] = book_table_dictionary["UPC"]
-                    book_dictionary[file_header[2]] = book_title
-                    book_dictionary[file_header[3]] = book_table_dictionary["Price (incl. tax)"]
-                    book_dictionary[file_header[4]] = book_table_dictionary["Price (excl. tax)"]
-                    book_dictionary[file_header[5]] = book_table_dictionary["Availability"]
-                    book_dictionary[file_header[6]] = book_description
-                    book_dictionary[file_header[7]] = book_category
-                    book_dictionary[file_header[8]] = '?'
-                    book_dictionary[file_header[9]] = book_image
+                    book_dictionary["product_page_url"] = book_url
+                    book_dictionary["universal_product_code"] = book_table_dictionary["UPC"]
+                    book_dictionary["title"] = book_title
+                    book_dictionary["price_including_tax"] = book_table_dictionary["Price (incl. tax)"]
+                    book_dictionary["price_excluding_tax"] = book_table_dictionary["Price (excl. tax)"]
+                    book_dictionary["number_available"] = book_table_dictionary["Availability"]
+                    book_dictionary["product_description"] = book_description
+                    book_dictionary["category"] = book_category
+                    book_dictionary["review_rating"] = '?'
+                    book_dictionary["image_url"] = book_image
 
                     #Mise du dictionnaire dans une liste de livres
                     books.append(book_dictionary)
 
                     #Rajout du livre dans le fichier csv de la catégorie
                     with open("CSV/" + category_title + '.csv', 'a', encoding='utf-8') as csv_file:
-                                writer = csv.DictWriter(csv_file, fieldnames=file_header)
+                                writer = csv.DictWriter(csv_file, delimiter=";", fieldnames=file_header)
                                 writer.writerow(book_dictionary)
 
-                break #Ne prendre qu'un seul livre par catégorie pour racourcir le temps d'essai
+                    #Télécharger l'image du livre                   
+                    urllib.request.urlretrieve(book_image, "Images/" + book_dictionary["universal_product_code"] + ".jpg")
+
+                break #Ne prendre qu'un seul livre par catégorie pour raccourcir le temps d'essai
             
             #Modifie l'URL pour demander la page suivante
             page_number +=1
@@ -87,4 +92,6 @@ if website_response.ok:
             category_url = category_url.replace(str(page_number - 1), str(page_number))
             category_response = requests.get(category_url)
 
-        ###break #Ne faire que la première catégorie pour raccourcir le tempss
+        ###break #Ne faire que la première catégorie pour raccourcir le temps
+
+        #content_inner > article > div.row
