@@ -1,5 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
+import re
 
 book_url = "http://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html" #product_page_url
 website_url = 'http://books.toscrape.com/'
@@ -9,6 +10,7 @@ category_url = "http://books.toscrape.com/catalogue/category/books/travel_2/inde
 category_response = requests.get(category_url) #Demande du code HTML de la catégorie Travel
 if category_response.ok:
     category_soup = BeautifulSoup(category_response.text, 'lxml')
+    book_category = category_soup.find(class_="page-header action").find('h1').text #category
     book_list = category_soup.find_all(class_="product_pod")
     for book in book_list:
         book_url = website_url + str("catalogue/") + book.find('h3').find('a')['href'].strip("../")
@@ -30,6 +32,11 @@ if category_response.ok:
             book_table_list = book_soup.find(class_="table table-striped").find_all('tr')
             for tr in book_table_list:
                 book_table_dictionary[tr.th.text] = tr.td.text #Remplissage du premier dictionnaire à partir des informations du livre récoltées
+            
+            #Récupérer seulements les chiffres des prix avec et sans taxe et du nombre de livre
+            book_table_dictionary["Price (incl. tax)"] = re.findall("\d+", book_table_dictionary["Price (incl. tax)"])[0] + '.' + re.findall("\d+", book_table_dictionary["Price (incl. tax)"])[1]
+            book_table_dictionary["Price (excl. tax)"] = re.findall("\d+", book_table_dictionary["Price (excl. tax)"])[0] + '.' + re.findall("\d+", book_table_dictionary["Price (excl. tax)"])[1]
+            book_table_dictionary["Availability"] = re.findall("\d+", book_table_dictionary["Availability"])[0]
         
             book_dictionary["product_page_url"] = book_url
             book_dictionary["universal_product_code"] = book_table_dictionary["UPC"]
@@ -38,7 +45,7 @@ if category_response.ok:
             book_dictionary["price_excluding_tax"] = book_table_dictionary["Price (excl. tax)"]
             book_dictionary["number_available"] = book_table_dictionary["Availability"]
             book_dictionary["product_description"] = book_description
-            book_dictionary["category"] = '?'
+            book_dictionary["category"] = book_category
             book_dictionary["review_rating"] = '?'
             book_dictionary["image_url"] = book_image
 
