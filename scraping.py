@@ -1,10 +1,13 @@
 import requests
 from bs4 import BeautifulSoup
 import re
+import csv
 
 book_url = "http://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html" #product_page_url
 website_url = 'http://books.toscrape.com/'
 category_url = "http://books.toscrape.com/catalogue/category/books/travel_2/index.html"
+books = []
+file_header = ["product_page_url", "universal_product_code", "title", "price_including_tax", "price_excluding_tax", "number_available", "product_description", "category", "review_rating", "image_url"]
 
 
 category_response = requests.get(category_url) #Demande du code HTML de la catégorie Travel
@@ -12,6 +15,11 @@ if category_response.ok:
     category_soup = BeautifulSoup(category_response.text, 'lxml')
     book_category = category_soup.find(class_="page-header action").find('h1').text #category
     book_list = category_soup.find_all(class_="product_pod")
+    #Création d'un fichier pour la catégorie
+    with open(book_category + '.csv', 'w', encoding='utf-8') as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=file_header)
+        writer.writeheader()
+    #Parcours des livre de la catégorie
     for book in book_list:
         book_url = website_url + str("catalogue/") + book.find('h3').find('a')['href'].strip("../")
         book_response = requests.get(book_url) #Récupération du code HTML d'un livre grâce à une requête sur son URL
@@ -48,6 +56,16 @@ if category_response.ok:
             book_dictionary["category"] = book_category
             book_dictionary["review_rating"] = '?'
             book_dictionary["image_url"] = book_image
+
+            #Mise du dictionnaire dans une liste de livres
+            books.append(book_dictionary)
+
+            #Rajout du livre dans le fichier csv de la catégorie
+            with open(book_category + '.csv', 'a', encoding='utf-8') as csv_file:
+                        writer = csv.DictWriter(csv_file, fieldnames=file_header)
+                        writer.writerow(book_dictionary)
+
+
 
             #Affichage du titre de chaque livre récolté, dans la console
             print(book_dictionary["title"])
