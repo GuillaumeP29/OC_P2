@@ -19,13 +19,13 @@ file_header = ["product_page_url", "universal_product_code", "title", "price_inc
 
 def soup_creation(url):
     #Fonction créant un élément BeautifulSoup à partir d'un URL
-    url_response = requests.get(url) #Demande du code HTML de la page d'accueil du site book.toscrap
+    url_response = requests.get(url) 
     if url_response.ok: 
         url_soup = BeautifulSoup(url_response.text, 'lxml')
     return url_soup
 
 def csv_creation(path, file_header):
-    #Créer le CSV de la catégorie parcourue
+    #Créer le CSV à partir d'un fichier header et d'un chemin et nom de fichier
     with open(path, 'w', encoding='utf-8') as csv_file:
         writer = csv.DictWriter(csv_file, delimiter=";", fieldnames=file_header)
         writer.writeheader()
@@ -58,32 +58,30 @@ def book_browser(book_list):
     #Parcours des livre de la catégorie
     for book in book_list:
         book_url = website_url + str("catalogue/") + book.find('h3').find('a')['href'].strip("../") #product_page_url
-        book_response = requests.get(book_url) #Récupération du code HTML d'un livre grâce à une requête sur son URL
+        book_response = requests.get(book_url) 
         book_response.encoding = 'utf-8'
-        if book_response.ok: #Vérification que la requête a réussi
+        if book_response.ok: 
             global csv_path
             global book_number
             global book_category
-            book_soup = BeautifulSoup(book_response.text, 'lxml') #Création du soup à partir du code HTML obtenu
+            book_soup = BeautifulSoup(book_response.text, 'lxml') 
 
             #Récupération des données souhaitées
             book_title = book_soup.find(class_="col-sm-6 product_main").find('h1').text #title
             book_description = book_soup.select_one('article>p').text #product_description
-            book_description.replace(';', ',')
+            book_description.replace(';', ',') 
             book_image = website_url + book_soup.find(class_="item active").find('img')['src'].strip("../") #image_url
             book_category = category_title #category
 
             #Récupération des données du tableau du livre
-            book_table_dictionary = {} #Création d'un premier dictionnaire pour récolter les données indiqué sur le site
+            book_table_dictionary = {} #Création d'un premier dictionnaire pour récolter les données indiqué dans un tableau du site web
             book_dictionary = {} #Création d'un deuxième dictionnaire pour récolter les données souhaitées pour le porjet
 
             book_table_list = book_soup.find(class_="table table-striped").find_all('tr')
             for tr in book_table_list:
                 book_table_dictionary[tr.th.text] = tr.td.text #Remplissage du premier dictionnaire à partir des informations du livre récoltées
                 
-            #Récupérer seulements les chiffres des prix avec et sans taxe et du nombre de livre
-            ###book_table_dictionary["Price (incl. tax)"] = re.findall("\d+", book_table_dictionary["Price (incl. tax)"])[0] + '.' + re.findall("\d+", book_table_dictionary["Price (incl. tax)"])[1]
-            ###book_table_dictionary["Price (excl. tax)"] = re.findall("\d+", book_table_dictionary["Price (excl. tax)"])[0] + '.' + re.findall("\d+", book_table_dictionary["Price (excl. tax)"])[1]
+            #Récupérer seulements les chiffres du nombre de livres
             book_table_dictionary["Availability"] = re.findall("\d+", book_table_dictionary["Availability"])[0]
 
             #Récupération des review_rating
@@ -114,7 +112,7 @@ def book_browser(book_list):
             #Télécharger l'image du livre
             download_image(book_image, image_path)
 
-        break #Ne prendre qu'un seul livre
+        ###break #Ne prendre qu'un seul livre
 
 
 def category_browser(category_list):
@@ -150,4 +148,4 @@ def category_browser(category_list):
             #Modifie l'URL pour demander la page suivante
             next_page()
 
-        break #Ne faire que la première catégorie pour raccourcir le temps
+        ###break #Ne faire que la première catégorie pour raccourcir le temps
