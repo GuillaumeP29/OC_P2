@@ -1,15 +1,16 @@
 # -*-coding:Utf-8 -*
+import fonctions
+import urllib
+import csv
 import requests
 from bs4 import BeautifulSoup
 import re
-import csv
-import urllib
-import fonctions
 
-#Création de la beautifulSoup à partir d'une fonction prenant l'url du site en paramètre
-website_soup = fonctions.soup_creation(fonctions.website_url)
+website_url = 'http://books.toscrape.com/'
+file_header = [
+                "product_page_url", "universal_product_code", "title", "price_including_tax",
+                "price_excluding_tax", "number_available", "product_description", "category",
+                "review_rating", "image_url"
+                ]
 
-#Récupération de la liste de catégories tout en me débarrassant de l'entête "Books"
-category_list = website_soup.find(class_="nav nav-list").find('ul').find_all('li')
-
-fonctions.category_browser(category_list)
+fonctions.website_scraping(website_url, file_header)
