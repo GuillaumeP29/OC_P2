@@ -1,5 +1,5 @@
-Pour Windows : \
-Créer l'environnement virtuel afin de pouvoir exécuter le programme de scraping du site book.toscrape :
+## Créer l'environnement virtuel afin de pouvoir exécuter le programme de scraping du site book.toscrape :
+
 1. Dans le terminal, se rendre jusqu'au dossier ou est enregistré le programme.
 2. _**Windows :**_ \
 créer l'environnement virtuel avec la commande du terminal suivante : "python -m venv env" \
