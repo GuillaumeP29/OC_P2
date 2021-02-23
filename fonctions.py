@@ -9,6 +9,7 @@ import re
 def soup_creation(url):
     """Fonction créant un élément BeautifulSoup à partir d'un URL"""
     url_response = requests.get(url) 
+    url_response.encoding = "utf-8"
     if url_response.ok: 
         url_soup = BeautifulSoup(url_response.text, 'lxml')
     return url_soup
@@ -29,7 +30,7 @@ def csv_creation(category_url, category_dict, file_header):
     """Création d'un fichier csv pour la catégorie"""
     category_title = category_dict[category_url]
     path = "CSV/" + category_title + '.csv'
-    with open(path, 'w', encoding='utf-8') as csv_file:
+    with open(path, 'w', encoding='utf-8-sig') as csv_file:
         writer = csv.DictWriter(csv_file, delimiter=";", fieldnames=file_header)
         writer.writeheader()
 
@@ -37,7 +38,7 @@ def csv_add_book(category_url, category_dict, file_header, dictionary):
     """Rajout d'un livre dans le fichier csv de sa catégorie"""
     category_title = category_dict[category_url]
     path = "CSV/" + category_title + '.csv'
-    with open(path, 'a', encoding='utf-8') as csv_file:
+    with open(path, 'a', encoding='utf-8-sig') as csv_file:
         writer = csv.DictWriter(csv_file, delimiter=";", fieldnames=file_header)
         writer.writerow(dictionary)
 
